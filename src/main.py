@@ -1,12 +1,12 @@
 import os
 import cv2
 import numpy as np
-from pose import get_pose, clean_keypoint
-from utils import vis_vid
+
+from src.pose import get_pose, clean_keypoint
+from src.utils import vis_vid, plot_vals
+from src.analyse import analyse_climb, analyse_center, count_moves
 
 from config import *
-
-# 0 nose, 1 left_eye, 2 right_eye, 3 left_ear, 4 right_ear, 5 left_shoulder, 6 right_shoulder, 7 left_elbow, 8 right_elbow, 9 left_wrist, 10 right_wrist, 11 left_hip, 12 right_hip, 13 left_knee, 14 right_knee, 15 left_ankle, 16 right_ankle
 
 cap = cv2.VideoCapture("data/test.mp4")
 
@@ -19,7 +19,12 @@ else:
     np.savez(SAVE_FILE, keypoints=keypoints, scores=scores)
 
 keypoints[scores < 0.3] = None
+scores[scores < 0.3] = 0
 cleaned_keypoints = clean_keypoint(keypoints, window_len=7, poly_order=3, max_velocity=50.0)
 
 if DRAW:
-    vis_vid(cap, cleaned_keypoints, scores, mode="climb")
+    vis_vid(cap, cleaned_keypoints, scores, mode="left")
+
+analyse_climb(cleaned_keypoints, cap.get(cv2.CAP_PROP_FPS))
+# centers, centers_velo = analyse_center(cleaned_keypoints)
+# vis_vid(cap, centers, scores=np.ones((len(centers))), mode="one", save=False)
