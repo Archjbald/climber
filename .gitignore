@@ -12,6 +12,7 @@ __pycache__/
 # Large media files and temporary data
 data/
 *.npz
+*.avi
 
 # IDE settings
 .idea/
