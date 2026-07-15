@@ -5,10 +5,19 @@ import numpy as np
 from rtmlib import draw_skeleton
 from matplotlib import pyplot as plt
 
-from config import *
+from src.config import config as cfg
 
+
+def check_vid(file_path):
+    cap = cv2.VideoCapture(file_path)
+    is_opened = cap.isOpened()
+    has_frame, _ = cap.read() if is_opened else (False, None)
+    cap.release()
+    return is_opened and has_frame
 
 def plot_vals(*args):
+    if not cfg.DEBUG:
+        return
     x = np.linspace(0, 14, len(args[0]))
     plt.figure()
     for vals in args:
@@ -17,6 +26,8 @@ def plot_vals(*args):
 
 
 def vis_vid(cap, keypoints=None, scores=None, mode="all", save=True):
+    if not cfg.DEBUG:
+        return
     fps = cap.get(cv2.CAP_PROP_FPS)
     frame_len = 1 / fps
 
@@ -49,14 +60,14 @@ def vis_vid(cap, keypoints=None, scores=None, mode="all", save=True):
                 img_show = draw_skeleton(img_show,
                                          np.expand_dims(keypoints[frame_idx - 1], axis=0),
                                          np.expand_dims(scores[frame_idx - 1], axis=0),
-                                         openpose_skeleton=USE_OPENPOSE,
+                                         openpose_skeleton=cfg.USE_OPENPOSE,
                                          kpt_thr=0.25)
             elif mode == "climb":
                 img_show = draw_skeleton(img_show,
                                          np.expand_dims(keypoints[frame_idx - 1], axis=0),
                                          np.expand_dims(scores[frame_idx - 1] *
                                                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1], axis=0),
-                                         openpose_skeleton=USE_OPENPOSE,
+                                         openpose_skeleton=cfg.USE_OPENPOSE,
                                          kpt_thr=0.25,
                                          radius=5
                                          )
@@ -66,7 +77,7 @@ def vis_vid(cap, keypoints=None, scores=None, mode="all", save=True):
                                          np.expand_dims(keypoints[frame_idx - 1], axis=0),
                                          np.expand_dims(scores[frame_idx - 1] *
                                                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0], axis=0),
-                                         openpose_skeleton=USE_OPENPOSE,
+                                         openpose_skeleton=cfg.USE_OPENPOSE,
                                          kpt_thr=0.25,
                                          radius=5
                                          )
@@ -74,7 +85,7 @@ def vis_vid(cap, keypoints=None, scores=None, mode="all", save=True):
             elif mode == "one":
                 img_show = draw_skeleton(img_show,
                                          keypoints_17[frame_idx - 1],
-                                         scores_17[frame_idx - 1], openpose_skeleton=USE_OPENPOSE,
+                                         scores_17[frame_idx - 1], openpose_skeleton=cfg.USE_OPENPOSE,
                                          kpt_thr=0.25,
                                          radius=5
                                          )

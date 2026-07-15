@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import vode
 
-from utils import plot_vals, vis_vid
+from src.utils import plot_vals, vis_vid
 
 STATIC = 0
 MOVING = 1
@@ -95,8 +95,8 @@ def analyse_climb(poses, fps=30):
     print("Static Frames: ", static_time, "s.")
 
     analysis = {
-        "move_count": moves,
-        "static_time": static_time,
+        "move_count": moves.item(),
+        "static_time": static_time.item(),
     }
 
     return analysis
