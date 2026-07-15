@@ -94,6 +94,13 @@ def analyse_climb(poses, fps=30):
     print("Moves: ", moves)
     print("Static Frames: ", static_time, "s.")
 
+    analysis = {
+        "move_count": moves,
+        "static_time": static_time,
+    }
+
+    return analysis
+
 
 def threshold_window(vals, thresh, wind, keep: "sup"):
     assert keep in ("sup", "inf")

@@ -25,6 +25,4 @@ cleaned_keypoints = clean_keypoint(keypoints, window_len=7, poly_order=3, max_ve
 if DRAW:
     vis_vid(cap, cleaned_keypoints, scores, mode="left")
 
-analyse_climb(cleaned_keypoints, cap.get(cv2.CAP_PROP_FPS))
-# centers, centers_velo = analyse_center(cleaned_keypoints)
-# vis_vid(cap, centers, scores=np.ones((len(centers))), mode="one", save=False)
+analysis = analyse_climb(cleaned_keypoints, cap.get(cv2.CAP_PROP_FPS))
