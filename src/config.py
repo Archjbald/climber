@@ -1,4 +1,4 @@
 
 SAVE_FILE = "keypoints.npz"
-DRAW = True
+DRAW = False
 USE_OPENPOSE = False
