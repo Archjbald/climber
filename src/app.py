@@ -4,7 +4,6 @@ from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException
 from src.main import process_vid
 from src.config import config as cfg
 from src.utils import check_vid
-from tqdm import tqdm
 
 cfg.DEBUG = False
 
@@ -21,16 +20,10 @@ def async_process_vid(task_id: str, file_path: str):
     print("** Starting process", task_id)
     try:
         results = process_vid(file_path)
-        tasks_db[task_id] = {
-            "status": "success",
-            "analysis": results
-        }
+        tasks_db[task_id] = {"status": "success", "analysis": results}
         print("** Finished process", task_id)
     except Exception as e:
-        tasks_db[task_id] = {
-            "status": "failed",
-            "error": str(e)
-        }
+        tasks_db[task_id] = {"status": "failed", "error": str(e)}
         print("** Aborted process", task_id)
     finally:
         if os.path.exists(file_path):
@@ -38,10 +31,14 @@ def async_process_vid(task_id: str, file_path: str):
 
 
 @app.post("/analyze")
-async def analyze_video(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+async def analyze_video(
+    background_tasks: BackgroundTasks, file: UploadFile = File(...)
+):
     # Expect video file
-    if not file.filename.lower().endswith(('.mp4', '.mov', '.avi')):
-        raise HTTPException(status_code=400, detail="Only MP4, MOV, and AVI are supported.")
+    if not file.filename.lower().endswith((".mp4", ".mov", ".avi")):
+        raise HTTPException(
+            status_code=400, detail="Only MP4, MOV, and AVI are supported."
+        )
 
     file_path = os.path.join(UPLOAD_DIR, file.filename)
 
@@ -59,7 +56,9 @@ async def analyze_video(background_tasks: BackgroundTasks, file: UploadFile = Fi
     if not (check_vid(file_path)):
         if os.path.exists(file_path):
             os.remove(file_path)
-        raise HTTPException(status_code=400, detail="Uploaded file is corrupted or not a valid video.")
+        raise HTTPException(
+            status_code=400, detail="Uploaded file is corrupted or not a valid video."
+        )
 
     # Launch video process in background
     task_id = str(uuid.uuid4())
@@ -70,7 +69,7 @@ async def analyze_video(background_tasks: BackgroundTasks, file: UploadFile = Fi
     return {
         "status": "processing",
         "task_id": task_id,
-        "message": "Video received and verified. Analysis is running in background."
+        "message": "Video received and verified. Analysis is running in background.",
     }
 
 

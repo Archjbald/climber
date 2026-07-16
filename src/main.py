@@ -3,8 +3,8 @@ import cv2
 import numpy as np
 
 from src.pose import get_pose, clean_keypoint
-from src.utils import vis_vid, plot_vals, check_vid
-from src.analyse import analyse_climb, analyse_center, count_moves
+from src.utils import vis_vid, check_vid
+from src.analyse import analyse_climb
 
 from src.config import config as cfg
 
@@ -13,8 +13,8 @@ def process_vid(video_path: str) -> dict:
     cap = cv2.VideoCapture(video_path)
     if cfg.DEBUG and os.path.isfile(cfg.SAVE_FILE):
         npz_file = np.load(cfg.SAVE_FILE)
-        keypoints = npz_file['keypoints']
-        scores = npz_file['scores']
+        keypoints = npz_file["keypoints"]
+        scores = npz_file["scores"]
     else:
         keypoints, scores = get_pose(cap, cfg.USE_OPENPOSE)
         if cfg.DEBUG:
@@ -22,7 +22,9 @@ def process_vid(video_path: str) -> dict:
 
     keypoints[scores < 0.3] = None
     scores[scores < 0.3] = 0
-    cleaned_keypoints = clean_keypoint(keypoints, window_len=7, poly_order=3, max_velocity=50.0)
+    cleaned_keypoints = clean_keypoint(
+        keypoints, window_len=7, poly_order=3, max_velocity=50.0
+    )
 
     if cfg.DRAW:
         vis_vid(cap, cleaned_keypoints, scores, mode="all")
@@ -41,12 +43,11 @@ def process_vid(video_path: str) -> dict:
         "climbing_metrics": analysis,
     }
 
-
     cap.release()
     return data
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     file_path = "data/test.mp4"
     if check_vid(file_path):
         process_vid("data/test.mp4")

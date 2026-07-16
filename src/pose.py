@@ -1,5 +1,4 @@
-from rtmlib import Body, PoseTracker, Custom
-from functools import partial
+from rtmlib import Body, PoseTracker
 from tqdm import tqdm
 
 from scipy.signal import savgol_filter
@@ -7,23 +6,23 @@ import cv2
 import numpy as np
 
 
-from src.config import config as cfg
-
 # 0 nose, 1 left_eye, 2 right_eye, 3 left_ear, 4 right_ear, 5 left_shoulder, 6 right_shoulder, 7 left_elbow, 8 right_elbow, 9 left_wrist, 10 right_wrist, 11 left_hip, 12 right_hip, 13 left_knee, 14 right_knee, 15 left_ankle, 16 right_ankle
 
 
 def get_pose(cap, openpose_skeleton):
-    device = 'cpu'
-    backend = 'onnxruntime'
+    device = "cpu"
+    backend = "onnxruntime"
 
     frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    pose_tracker = PoseTracker(Body,
-                               mode='balanced',
-                               det_frequency=1,  # detect every 10 frames
-                               backend=backend,
-                               device=device,
-                               to_openpose=False)
+    pose_tracker = PoseTracker(
+        Body,
+        mode="balanced",
+        det_frequency=1,  # detect every 10 frames
+        backend=backend,
+        device=device,
+        to_openpose=False,
+    )
 
     frame_idx = 0
     detection = [[], []]
@@ -51,7 +50,7 @@ def clean_keypoint(coords, max_velocity=30.0, window_len=11, poly_order=2):
 
     # velocity thresh
     diffs = np.diff(cleaned, axis=0)
-    velocities = np.sqrt(np.sum(diffs ** 2, axis=2))
+    velocities = np.sqrt(np.sum(diffs**2, axis=2))
     frame_idx, kp_idx = np.where(velocities > max_velocity)
 
     valid_mask = (frame_idx + 1) < num_frames
@@ -78,8 +77,9 @@ def clean_keypoint(coords, max_velocity=30.0, window_len=11, poly_order=2):
 
             # 2b. Smooth (Modifies the signal array in-place inside 'cleaned')
             if window_len > 3:
-                cleaned[:, kp, axis] = savgol_filter(signal, window_length=window_len, polyorder=poly_order)
-
+                cleaned[:, kp, axis] = savgol_filter(
+                    signal, window_length=window_len, polyorder=poly_order
+                )
 
     return cleaned
 
@@ -122,7 +122,9 @@ def fix_left_right_switches(coords):
 
         with np.errstate(all="ignore"):
             dist_normal = np.nanmean(sq_dist_normal_l) + np.nanmean(sq_dist_normal_r)
-            dist_switched = np.nanmean(sq_dist_switched_l) + np.nanmean(sq_dist_switched_r)
+            dist_switched = np.nanmean(sq_dist_switched_l) + np.nanmean(
+                sq_dist_switched_r
+            )
 
         if np.isnan(dist_normal) or np.isnan(dist_switched):
             continue
@@ -157,7 +159,9 @@ def fix_left_right_switches_old(coords):
 
         with np.errstate(all="ignore"):
             dist_normal = np.nanmean(sq_dist_normal_l) + np.nanmean(sq_dist_normal_r)
-            dist_switched = np.nanmean(sq_dist_switched_l) + np.nanmean(sq_dist_switched_r)
+            dist_switched = np.nanmean(sq_dist_switched_l) + np.nanmean(
+                sq_dist_switched_r
+            )
 
         if dist_switched < dist_normal:
             fixed[t, left_indices] = curr_right
