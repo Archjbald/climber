@@ -102,7 +102,7 @@ def analyse_climb(poses, fps=30):
     return analysis
 
 
-def threshold_window(vals, thresh, wind, keep: "sup"):
+def threshold_window(vals, thresh, wind, keep="sup"):
     assert keep in ("sup", "inf")
     results = np.zeros_like(vals, dtype=bool)
     for i in range(len(vals)):
