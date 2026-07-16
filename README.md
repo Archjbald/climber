@@ -1,23 +1,26 @@
 # Climber
 
-A rock climbing analysis tool that reads video  and applies Human Pose Estimation (HPE) to track climbing metrics.
+A rock climbing analysis tool that tracks climbing metrics from video inputs using Human Pose Estimation (HPE), exposed via an asynchronous FastAPI backend.
 
 ## Status
-Currently in early development. The codebase includes a baseline framework for reading video inputs and running HPE to extract keypoints.
+Currently in active development. The codebase supports video upload verification, asynchronous background processing, and pose estimation.
 
 ## Tech Stack
 * **Language:** Python 3.10+
 * **HPE Engine:** Powered by [rtmlib](https://github.com/Tau-J/rtmlib) for fast and accurate real-time pose estimation.
+* **API Framework:** FastAPI + Uvicorn for asynchronous task execution.
 
 ## Project Structure
 ```text
 climber/
-├── demo/           # test scripts for rtmlib
+├── demo/           # Test scripts for rtmlib
 ├── src/        
-│   ├── main.py     # Application entry point
+│   ├── app.py  # FastAPI entry point & background tasks
+│   ├── main.py     # Application entry point / pipeline runner
 │   ├── config.py   # Global configuration settings
 │   ├── pose.py     # HPE and tracking logic
 │   └── utils.py    # Helper functions
+
 ```
 
 ## Getting Started
@@ -35,22 +38,25 @@ cd climber
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
+
 ```
 
 ### 3. Install dependencies
-
-*(Note: Ensure you install `rtmlib` and your other required packages here)*
 
 ```bash
 pip install -r requirements.txt
 
 ```
 
-### 4. Run the application
+### 4. Run the API
 
-Run the main script from the root directory using:
+Start the local development server using:
 
 ```bash
-python src/main.py
+uvicorn src.app:app --reload
 
 ```
+
+Once running, access the interactive API documentation at:
+
+👉 **http://127.0.0.1:8000/docs**

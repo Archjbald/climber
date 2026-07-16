@@ -2,3 +2,5 @@ rtmlib
 tqdm
 matplotlib
 scipy
+ruff
+pytest
