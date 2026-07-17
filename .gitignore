@@ -11,6 +11,8 @@ __pycache__/
 
 # Large media files and temporary data
 data/
+temp_uploads/
+tests/assets/
 *.npz
 *.avi
 
