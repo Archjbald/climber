@@ -1,8 +1,6 @@
-import pytest
 from pathlib import Path
 
 from src.utils import check_vid
-from tests.helpers import make_video
 
 ASSETS = Path(__file__).parent / "assets"
 

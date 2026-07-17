@@ -1,5 +1,4 @@
 from unittest.mock import patch, ANY
-
 import pytest
 from fastapi.testclient import TestClient
 

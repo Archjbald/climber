@@ -6,5 +6,4 @@ class AppConfig:
         self.DEBUG = True
 
 
-# On crée une seule instance qui sera partagée par tout le projet
 config = AppConfig()

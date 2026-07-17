@@ -1,4 +1,4 @@
-from rtmlib import Body, Custom, PoseTracker, draw_skeleton
+from rtmlib import Body, PoseTracker, draw_skeleton
 import cv2
 
 cap = cv2.VideoCapture(0)  # for video file instead of webcam, use cap = cv2.VideoCapture('./demo.mp4')
