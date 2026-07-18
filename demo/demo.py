@@ -1,5 +1,5 @@
 import cv2
-from rtmlib import Wholebody, draw_skeleton, Body
+from rtmlib import draw_skeleton, Body
 
 img = cv2.imread('../data/demo.jpg')
 

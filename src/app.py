@@ -14,6 +14,11 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 tasks_db = {}
 
+def submit_video(file_path: str, background_tasks: BackgroundTasks) -> str:
+    task_id = str(uuid.uuid4())
+    tasks_db[task_id] = {"status": "processing"}
+    background_tasks.add_task(async_process_vid, task_id, file_path)
+    return task_id
 
 def async_process_vid(task_id: str, file_path: str):
     # Analyse video and update task DB
@@ -61,10 +66,7 @@ async def analyze_video(
         )
 
     # Launch video process in background
-    task_id = str(uuid.uuid4())
-    tasks_db[task_id] = {"status": "processing"}
-
-    background_tasks.add_task(async_process_vid, task_id, file_path)
+    task_id = submit_video(file_path, background_tasks)
 
     return {
         "status": "processing",

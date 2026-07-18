@@ -9,7 +9,7 @@ import numpy as np
 # 0 nose, 1 left_eye, 2 right_eye, 3 left_ear, 4 right_ear, 5 left_shoulder, 6 right_shoulder, 7 left_elbow, 8 right_elbow, 9 left_wrist, 10 right_wrist, 11 left_hip, 12 right_hip, 13 left_knee, 14 right_knee, 15 left_ankle, 16 right_ankle
 
 
-def get_pose(cap, openpose_skeleton):
+def get_pose(cap, openpose_skeleton=False):
     device = "cpu"
     backend = "onnxruntime"
 
@@ -18,10 +18,10 @@ def get_pose(cap, openpose_skeleton):
     pose_tracker = PoseTracker(
         Body,
         mode="balanced",
-        det_frequency=1,  # detect every 10 frames
+        det_frequency=1,
         backend=backend,
         device=device,
-        to_openpose=False,
+        to_openpose=openpose_skeleton,
     )
 
     frame_idx = 0
@@ -35,8 +35,8 @@ def get_pose(cap, openpose_skeleton):
                 break
 
             keypoints, scores = pose_tracker(frame)
-            detection[0].append(keypoints)
-            detection[1].append(scores)
+            detection[0].append(keypoints)  # NB_person, NB_kp, 2
+            detection[1].append(scores)  # NB_person, NB_kp, 2
 
     print(len(detection[0]))
     keypoints = np.vstack(detection[0])
