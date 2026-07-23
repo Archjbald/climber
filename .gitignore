@@ -19,3 +19,7 @@ tests/assets/
 # IDE settings
 .idea/
 .vscode/
+
+# Other
+*.coverage
+*.dev
