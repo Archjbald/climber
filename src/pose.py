@@ -108,19 +108,18 @@ def clean_keypoint(
     frames = np.arange(num_frames)
 
     for kp in range(num_keypoints):
-        for axis in range(2):  # 0 for X, 1 for Y
+        for axis in range(2):
             signal = cleaned[:, kp, axis]
             nans = np.isnan(signal)
 
-            # 2a. Fill Gaps
+            # Fill Gaps
             if np.any(nans):
                 if np.all(nans):
-                    # If the entire video for this keypoint is NaN, fill with 0s to prevent crash
                     signal[:] = 0.0
                 else:
                     signal[nans] = np.interp(frames[nans], frames[~nans], signal[~nans])
 
-            # 2b. Smooth (Modifies the signal array in-place inside 'cleaned')
+            # Smooth
             if window_len > 3:
                 cleaned[:, kp, axis] = savgol_filter(
                     signal, window_length=window_len, polyorder=poly_order

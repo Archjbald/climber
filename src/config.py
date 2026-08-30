@@ -9,6 +9,7 @@ class AppConfig(BaseSettings):
     DRAW: bool = True
     USE_OPENPOSE: bool = False
     CONF_THRESH: float = 0.3
+    MAX_UPLOAD_MB: int = 200
 
 
 
