@@ -11,3 +11,4 @@ mlflow
 opencv-python
 mlflow-skinny
 numpy
+pydantic-settings
