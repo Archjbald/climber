@@ -1,8 +1,12 @@
-"""Tests for src.pose.extract_pose."""
+"""Tests for src.pose."""
 
 import numpy as np
 from unittest.mock import patch, MagicMock
-from src.pose import extract_pose
+from pytest import approx
+from src.pose import extract_pose, clean_keypoint, fix_left_right_switches
+
+LEFT = [5, 7, 9, 11, 13, 15]
+RIGHT = [6, 8, 10, 12, 14, 16]
 
 @patch("src.pose.Body")
 @patch("src.pose.PoseTracker")
@@ -46,3 +50,57 @@ def test_get_pose_processing_loop(mock_pose_tracker_class, mock_body):
 
     assert np.array_equal(keypoints, expected_keypoints)
     assert np.array_equal(scores, expected_scores)
+
+
+# --- clean_keypoint --------------------------------------------------------
+
+
+def test_clean_keypoint_preserves_shape():
+    coords = np.random.rand(20, 17, 2) * 10.0
+    assert clean_keypoint(coords).shape == (20, 17, 2)
+
+
+def test_clean_keypoint_drops_a_velocity_outlier():
+    coords = np.zeros((20, 17, 2))
+    coords[:, :, 0] = np.linspace(0, 19, 20)[:, None]  # steady drift on every keypoint
+    coords[10, 9, 0] = 500.0  # one impossible jump
+
+    cleaned = clean_keypoint(coords, max_velocity=30.0, window_len=7, poly_order=2)
+
+    assert cleaned[10, 9, 0] == approx(10.0, abs=1.0)
+
+
+def test_clean_keypoint_zeros_a_fully_missing_keypoint():
+    coords = np.zeros((15, 17, 2))
+    coords[:, 3, :] = np.nan
+
+    cleaned = clean_keypoint(coords, window_len=0)
+
+    assert np.all(cleaned[:, 3] == 0.0)
+
+
+# --- fix_left_right_switches ----------------------------------------------
+
+
+def test_fix_left_right_switches_restores_a_swapped_frame():
+    coords = np.zeros((10, 17, 2))
+    for i, (left, right) in enumerate(zip(LEFT, RIGHT)):
+        coords[:, left, 0] = 1.0 + i
+        coords[:, right, 0] = 100.0 + i
+
+    swapped = coords.copy()
+    swapped[5, LEFT, 0] = coords[5, RIGHT, 0]
+    swapped[5, RIGHT, 0] = coords[5, LEFT, 0]
+
+    fixed = fix_left_right_switches(swapped)
+
+    assert np.array_equal(fixed[5, LEFT, 0], coords[5, LEFT, 0])
+    assert np.array_equal(fixed[5, RIGHT, 0], coords[5, RIGHT, 0])
+
+
+def test_fix_left_right_switches_leaves_a_consistent_track_untouched():
+    coords = np.zeros((8, 17, 2))
+    for k in range(17):
+        coords[:, k, 0] = np.arange(8) + k
+
+    assert np.array_equal(fix_left_right_switches(coords), coords)

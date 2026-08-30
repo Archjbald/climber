@@ -1,40 +1,47 @@
 """Tests for the src.main.process_vid pipeline."""
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+
+import numpy as np
+
 from src.main import process_vid
-from tests.helpers import make_pose
+from tests.helpers import make_climber_track
 
 
-@patch("src.main.cv2.VideoCapture")
 @patch("src.main.get_pose")
-@patch("src.main.clean_keypoint")
-@patch("src.main.analyse_climb")
-@patch("src.main.cfg")
-def test_process_vid_standard_execution(
-    mock_cfg, mock_analyse, mock_clean, mock_get_pose, mock_VideoCapture
-):
-    mock_cfg.DEBUG = False
-    mock_cfg.DRAW = False
-    mock_cfg.USE_OPENPOSE = True
+def test_process_vid_returns_metadata_and_metrics(mock_get_pose, sample_video_path):
+    """process_vid wires real video I/O, cleaning and analysis into one result dict."""
+    keypoints = make_climber_track(30)
+    scores = np.ones((30, 17))
+    mock_get_pose.return_value = (keypoints, scores)
 
-    mock_cap = MagicMock()
-    mock_cap.get.side_effect = lambda prop: 30.0 if prop == 5 else 60.0
-    mock_VideoCapture.return_value = mock_cap
+    result = process_vid(sample_video_path)
 
-    fake_keypoints,fake_scores = make_pose()
-    mock_get_pose.return_value = (fake_keypoints, fake_scores)
-    mock_clean.return_value = "cleaned_kps"
-    mock_analyse.return_value = {"move_count": 5}
-
-    result = process_vid("fake_video.mp4")
+    assert set(result) == {"video_metadata", "climbing_metrics"}
+    assert result["video_metadata"] == {"duration_seconds": 1.0, "fps": 30.0}
+    assert set(result["climbing_metrics"]) == {"move_count", "static_time"}
 
 
-    assert result == {
-        "video_metadata": {"duration_seconds": 2.0, "fps": 30.0},
-        "climbing_metrics": {"move_count": 5},
-    }
+@patch("src.main.get_pose")
+def test_process_vid_counts_no_move_for_a_still_climber(mock_get_pose, sample_video_path):
+    """A motionless keypoint track yields zero moves and a non-zero static time."""
+    keypoints = make_climber_track(30)
+    scores = np.ones((30, 17))
+    mock_get_pose.return_value = (keypoints, scores)
 
-    mock_get_pose.assert_called_once_with(mock_cap, cache_file=None, use_openpose=True, pose_tracker=None)
-    mock_clean.assert_called_once()
-    mock_analyse.assert_called_once_with("cleaned_kps", 30.0)
-    mock_cap.release.assert_called_once()
+    metrics = process_vid(sample_video_path)["climbing_metrics"]
+
+    assert metrics["move_count"] == 0
+    assert metrics["static_time"] > 0
+
+
+@patch("src.main.get_pose")
+def test_process_vid_counts_one_move_per_reach(mock_get_pose, sample_video_path):
+    """Each wrist reach in the keypoint track is counted as one move."""
+    keypoints = make_climber_track(120, reaches=((30, 45), (80, 95)))
+    scores = np.ones((120, 17))
+    mock_get_pose.return_value = (keypoints, scores)
+
+    metrics = process_vid(sample_video_path)["climbing_metrics"]
+
+    assert metrics["move_count"] == 2
