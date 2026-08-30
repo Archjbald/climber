@@ -1,3 +1,5 @@
+"""MLflow sweep comparing rtmpose backend modes for speed and keypoint confidence."""
+
 import time
 import cv2
 import numpy as np
@@ -32,7 +34,7 @@ for pose_cfg in CONFIGS:
             mlflow.log_metrics(
                 {
                     "mean_confidence": float(np.mean(valid)) if len(valid) else 0.0,
-                    "pct_valid_keypoints": float((scores >= 0.3).mean()),
+                    "pct_valid_keypoints": float((scores >= cfg.CONF_THRESH).mean()),
                     "processing_fps": frame_count / elapsed,
                 }
             )

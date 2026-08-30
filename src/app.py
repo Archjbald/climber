@@ -1,3 +1,5 @@
+"""FastAPI service for uploading climbing videos and retrieving analysis results."""
+
 import os
 import uuid
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException
@@ -15,13 +17,14 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 tasks_db = {}
 
 def submit_video(file_path: str, background_tasks: BackgroundTasks) -> str:
+    """Register a background analysis task for `file_path` and return its task id."""
     task_id = str(uuid.uuid4())
     tasks_db[task_id] = {"status": "processing"}
     background_tasks.add_task(async_process_vid, task_id, file_path)
     return task_id
 
-def async_process_vid(task_id: str, file_path: str):
-    # Analyse video and update task DB
+def async_process_vid(task_id: str, file_path: str) -> None:
+    """Run video analysis, store the result under `task_id`, and delete the source file."""
     print("** Starting process", task_id)
     try:
         results = process_vid(file_path)
@@ -38,8 +41,8 @@ def async_process_vid(task_id: str, file_path: str):
 @app.post("/analyze")
 async def analyze_video(
     background_tasks: BackgroundTasks, file: UploadFile = File(...)
-):
-    # Expect video file
+) -> dict:
+    """Validate an uploaded video, save it, and start background analysis."""
     if not file.filename.lower().endswith((".mp4", ".mov", ".avi")):
         raise HTTPException(
             status_code=400, detail="Only MP4, MOV, and AVI are supported."
@@ -76,7 +79,8 @@ async def analyze_video(
 
 
 @app.get("/tasks/{task_id}")
-async def get_task_status(task_id: str):
+async def get_task_status(task_id: str) -> dict:
+    """Return the stored status and result for `task_id`."""
     if task_id not in tasks_db:
         raise HTTPException(status_code=404, detail="Task not found")
     return tasks_db[task_id]

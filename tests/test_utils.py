@@ -1,3 +1,5 @@
+"""Tests for src.utils.check_vid."""
+
 from pathlib import Path
 
 from src.utils import check_vid
