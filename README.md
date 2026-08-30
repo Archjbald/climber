@@ -9,6 +9,8 @@ Extracted metrics:
 - Not-moving time
 - Trajectory
 
+![demo](https://github.com/Archjbald/climber/blob/docs/documentation/demo.gif)
+
 ## Status
 Currently in active development. The codebase supports video upload verification, asynchronous background processing, and pose estimation.
 
