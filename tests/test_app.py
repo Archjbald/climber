@@ -1,12 +1,13 @@
-"""Tests for the src.app FastAPI endpoints and background task handling."""
+"""Tests for the src.app FastAPI endpoints and background analysis handling."""
 
-from unittest.mock import patch, ANY
+import asyncio
+from unittest.mock import patch
+
 import pytest
 from fastapi.testclient import TestClient
 
-from fastapi import BackgroundTasks
-
-from src.app import submit_video, tasks_db, app, async_process_vid
+import src.app
+from src.app import app, tasks_db
 from tests.helpers import make_video, make_process_results
 
 client = TestClient(app)
@@ -15,16 +16,15 @@ client = TestClient(app)
 @pytest.fixture(autouse=True)
 def clear_tasks():
     tasks_db.clear()
+    src.app._busy = False
     yield
     tasks_db.clear()
+    src.app._busy = False
 
 
-"""
-Test video upload
-"""
+# --- POST /analyze ---------------------------------------------------------
 
 
-# Test invalid video data
 @patch("src.app.check_vid")
 def test_analyze_video_invalid_video(mock_check_vid):
     mock_check_vid.return_value = False
@@ -35,150 +35,111 @@ def test_analyze_video_invalid_video(mock_check_vid):
     assert response.json() == {
         "detail": "Uploaded file is corrupted or not a valid video."
     }
-
     mock_check_vid.assert_called_once()
 
 
-# Test invalid video extension
-@pytest.mark.parametrize(
-    "filename",
-    [
-        "video.txt",
-        "video.png",
-        "video.pdf",
-    ],
-)
+@pytest.mark.parametrize("filename", ["video.txt", "video.png", "video.pdf"])
 def test_analyze_video_invalid_extension(filename):
     response = client.post("/analyze", files=make_video(filename))
 
     assert response.status_code == 400
     assert response.json() == {"detail": "Only MP4, MOV, and AVI are supported."}
 
-# Test empty file
+
 def test_analyze_video_empty_file_fails():
     files = {"file": ("empty.mp4", b"", "video/mp4")}
     response = client.post("/analyze", files=files)
 
     assert response.status_code == 400
-    assert response.json() == {"detail": "Uploaded file is corrupted or not a valid video."}
+    assert response.json() == {
+        "detail": "Uploaded file is corrupted or not a valid video."
+    }
 
-# Test successful upload
-@patch("src.app.check_vid")
-@patch("src.app.submit_video")
-def test_analyze_video_success(
-    mock_submit_video,
-    mock_check_vid,
-):
-    mock_check_vid.return_value = True
-    mock_submit_video.return_value = "12345678-1234-5678-1234-567812345678"
+
+def test_analyze_video_too_large():
+    with patch.object(src.app.cfg, "MAX_UPLOAD_MB", 0):
+        response = client.post("/analyze", files=make_video())
+
+    assert response.status_code == 413
+    assert "limit" in response.json()["detail"].lower()
+
+
+def test_analyze_video_rejects_concurrent_job():
+    tasks_db["already-running"] = {"status": "processing"}
 
     response = client.post("/analyze", files=make_video())
 
-    assert response.status_code == 200
-    assert response.json() == {
-        "status": "processing",
-        "task_id": "12345678-1234-5678-1234-567812345678",
-        "message": "Video received and verified. Analysis is running in background.",
-    }
+    assert response.status_code == 409
+
+
+@patch("src.app.asyncio.create_task")
+@patch("src.app._run_analysis")
+@patch("src.app._save_upload")
+@patch("src.app.check_vid", return_value=True)
+def test_analyze_video_success(mock_check_vid, mock_save, mock_run, mock_create_task):
+    response = client.post("/analyze", files=make_video())
+
+    assert response.status_code == 202
+    body = response.json()
+    assert body["status"] == "processing"
+    assert tasks_db[body["task_id"]] == {"status": "processing"}
 
     mock_check_vid.assert_called_once()
-    mock_submit_video.assert_called_once_with(
-        "temp_uploads/video.mp4",
-        ANY,
-    )
+    mock_run.assert_called_once()
+    assert mock_run.call_args.args[0] == body["task_id"]
+    mock_create_task.assert_called_once()
 
 
-# Test failed upload
 @patch("builtins.open", side_effect=OSError("No space left on device"))
 def test_analyze_video_upload_failure(mock_open):
-    files = {"file": ("video.mp4", b"dummy bytes", "video/mp4")}
-
-    response = client.post("/analyze", files=files)
+    response = client.post("/analyze", files=make_video())
 
     assert response.status_code == 500
     assert "Failed to save upload" in response.json()["detail"]
 
 
-"""
-Test submit video
-"""
+# --- _run_analysis -------------------------------------------------------------
 
 
-# Test submit video success
-@patch("src.app.async_process_vid")
-def test_submit_video(mock_async_process_vid):
-    background_tasks = BackgroundTasks()
+def test_run_analysis_success(tmp_path):
+    video = tmp_path / "clip.mp4"
+    video.write_bytes(b"data")
+    tasks_db["t1"] = {"status": "processing"}
 
-    with patch.object(background_tasks, "add_task") as mock_add_task:
-        task_id = submit_video("video.mp4", background_tasks)
+    results = make_process_results()
+    with patch("src.app.process_vid", return_value=results) as mock_process:
+        asyncio.run(src.app._run_analysis("t1", video))
 
-    assert task_id in tasks_db
-    assert tasks_db[task_id] == {"status": "processing"}
-
-    mock_add_task.assert_called_once_with(
-        mock_async_process_vid,
-        task_id,
-        "video.mp4",
-    )
+    mock_process.assert_called_once_with(str(video))
+    assert tasks_db["t1"] == {"status": "success", "analysis": results}
+    assert not video.exists()
 
 
-"""
-Test async process video
-"""
+def test_run_analysis_failure(tmp_path):
+    video = tmp_path / "clip.mp4"
+    video.write_bytes(b"data")
+    tasks_db["t1"] = {"status": "processing"}
+
+    with patch("src.app.process_vid", side_effect=Exception("OpenCV: Frame corruption error")):
+        asyncio.run(src.app._run_analysis("t1", video))
+
+    assert tasks_db["t1"] == {
+        "status": "failed",
+        "error": "OpenCV: Frame corruption error",
+    }
+    assert not video.exists()
 
 
-@patch("src.app.os.remove")
-@patch("src.app.process_vid")
-def test_async_process_success(mock_process_vid, mock_remove):
-    task_id = "12345678-1234-5678-1234-567812345678"
-    # file_path = "TO_REMOVE.mp4"
-    file_path = __file__  # Don't need a video but needs a file that exists
-
-    process_result = make_process_results()
-    mock_process_vid.return_value = process_result
-
-    async_process_vid(task_id, file_path)
-
-    mock_process_vid.assert_called_once_with(file_path)
-    assert tasks_db[task_id]["status"] == "success"
-    assert tasks_db[task_id]["analysis"] == process_result
-    mock_remove.assert_called_once_with(file_path)
-
-
-@patch("src.app.os.remove")
-@patch("src.app.process_vid")
-def test_async_process_fails(mock_process_vid, mock_remove):
-    task_id = "12345678-1234-5678-1234-567812345678"
-    # file_path = "TO_REMOVE.mp4"
-    file_path = __file__  # Don't need a video but needs a file that exists
-    mock_process_vid.side_effect = Exception("OpenCV: Frame corruption error")
-
-    async_process_vid(task_id, file_path)
-
-    mock_process_vid.assert_called_once_with(file_path)
-    assert tasks_db[task_id]["status"] == "failed"
-    assert tasks_db[task_id]["error"] == "OpenCV: Frame corruption error"
-    mock_remove.assert_called_once_with(file_path)
-
-
-"""
-Test get task status
-"""
+# --- GET /tasks/{task_id} ----------------------------------------------------
 
 
 def test_get_task_existing():
-    tasks_db["task-1"] = {
-        "status": "success",
-        "analysis": {"score": 42},
-    }
+    tasks_db["task-1"] = {"status": "success", "analysis": {"score": 42}}
 
     response = client.get("/tasks/task-1")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "status": "success",
-        "analysis": {"score": 42},
-    }
+    assert response.json() == {"status": "success", "analysis": {"score": 42}}
 
 
 def test_get_task_not_found():
