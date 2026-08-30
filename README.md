@@ -9,7 +9,7 @@ Extracted metrics:
 - Not-moving time
 - Trajectory
 
-![demo](https://github.com/Archjbald/climber/blob/docs/documentation/demo.gif)
+![demo](https://github.com/Archjbald/climber/blob/main/demo.gif)
 
 ## Status
 Currently in active development. The codebase supports video upload verification, asynchronous background processing, and pose estimation.
@@ -23,17 +23,18 @@ Currently in active development. The codebase supports video upload verification
 ## Project Structure
 ```text
 climber/
-├── demo/           # Test scripts for rtmlib
-├── src/            
-│   ├── app.py      # FastAPI entry point & background tasks
-│   ├── main.py     # Application entry point / pipeline runner
-│   ├── config.py   # Global configuration settings
-│   ├── pose.py     # HPE and tracking logic
-│   └── utils.py    # Helper functions
-├── test/           # Unitary tests
-├── .dockerignore   # Build exclusion rules
-├── Dockerfile      # Container definition
-└── requirements.txt
+├── demo/                # Test scripts for rtmlib
+├── experiments/         # MLFlow experiments scripts
+├── reports/             # MLFlow reports
+├── src/  
+│   ├── analyse.py       # Compute climbing metrics          
+│   ├── app.py           # FastAPI entry point & background tasks
+│   ├── config.py        # Global configuration settings
+│   ├── main.py          # Application entry point / pipeline runner
+│   ├── mlflow_model.py  # Define MLFlow model
+│   ├── pose.py          # HPE and tracking logic
+│   └── utils.py         # Helper functions
+├── tests/               # Unitary tests
 ```
 
 ## Getting Started
@@ -96,3 +97,5 @@ output metrics per run.
 
 The full pipeline is packaged as a registered MLflow pyfunc model
 (`src/mlflow_model.py`) and servable via `mlflow models serve`.
+
+P.S.: experiments require the existence of videos within a `data/` folder, that are not provided in this repo. Please modify the CLIP paths in the `experiments/run_*.py` files.

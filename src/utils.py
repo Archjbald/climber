@@ -1,3 +1,7 @@
+"""Video integrity checks, debug plotting, and skeleton-overlay rendering helpers."""
+
+from __future__ import annotations
+
 import time
 
 import cv2
@@ -8,8 +12,12 @@ from PIL import Image
 
 from src.config import config as cfg
 
+import base64
+import zlib
 
-def check_vid(file_path):
+
+def check_vid(file_path: str) -> bool:
+    """Return True if `file_path` can be opened and at least one frame read."""
     cap = cv2.VideoCapture(file_path)
     is_opened = cap.isOpened()
     has_frame, _ = cap.read() if is_opened else (False, None)
@@ -17,7 +25,8 @@ def check_vid(file_path):
     return is_opened and has_frame
 
 
-def plot_vals(*args):
+def plot_vals(*args: np.ndarray) -> None:
+    """Plot one or more signals on a shared x-axis (no-op unless DEBUG)."""
     if not cfg.DEBUG:
         return
     x = np.linspace(0, 14, len(args[0]))
@@ -27,7 +36,21 @@ def plot_vals(*args):
     plt.show()
 
 
-def vis_vid(cap, keypoints=None, scores=None, mode="all", save=True, gif=False):
+def get_cache_path(file_path: str) -> str:
+    normalized = file_path.replace("\\", "/").strip()
+    compressed = zlib.compress(normalized.encode('utf-8'), level=9)
+    uid = base64.urlsafe_b64encode(compressed).decode('ascii').rstrip('=')
+    return f'{uid}.npz'
+
+def vis_vid(
+    cap,
+    keypoints: np.ndarray | None = None,
+    scores: np.ndarray | None = None,
+    mode: str = "all",
+    save: bool = True,
+    gif: bool = False,
+) -> None:
+    """Render skeleton overlays over the video and display/save them (no-op unless DEBUG)."""
     if not cfg.DEBUG:
         return
     fps = cap.get(cv2.CAP_PROP_FPS)

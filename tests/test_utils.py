@@ -1,3 +1,5 @@
+"""Tests for src.utils.check_vid."""
+
 from pathlib import Path
 from  tests.helpers import sample_video_path, sample_fake_path
 from src.utils import check_vid

@@ -1,3 +1,5 @@
+"""Tests for the src.main.process_vid pipeline."""
+
 from unittest.mock import patch, MagicMock
 from src.main import process_vid
 from tests.helpers import make_pose

@@ -1,3 +1,5 @@
+"""Tests for src.pose.extract_pose."""
+
 import numpy as np
 from unittest.mock import patch, MagicMock
 from src.pose import extract_pose

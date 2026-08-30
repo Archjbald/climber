@@ -1,3 +1,5 @@
+"""Package and register the climbing-pose pipeline as an MLflow pyfunc model."""
+
 import mlflow
 import pandas as pd
 

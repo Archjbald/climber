@@ -1,3 +1,5 @@
+"""Tests for src.analyse."""
+
 from unittest.mock import patch
 from tests.helpers import make_pose, make_motions
 import numpy as np

@@ -1,3 +1,5 @@
+"""Minimal rtmlib example: run pose tracking on a webcam (or video file) stream."""
+
 from rtmlib import Body, PoseTracker, draw_skeleton
 import cv2
 
@@ -8,7 +10,7 @@ backend = 'onnxruntime'
 openpose_skeleton = False
 
 pose_tracker = PoseTracker(Body,
-                        mode='balanced',
+                         mode='balanced',
                         det_frequency=10,  # detect every 10 frames
                         backend=backend, device=device,
                         to_openpose=False)

@@ -1,3 +1,7 @@
+"""Pose extraction and keypoint post-processing (caching, outlier removal, smoothing)."""
+
+from __future__ import annotations
+
 from rtmlib import Body, PoseTracker
 from tqdm import tqdm
 
@@ -10,12 +14,13 @@ import os
 
 
 def get_pose_tracker(
-    mode="balanced",
-    backend="onnxruntime",
-    device="cpu",
-    det_frequency=1,
-    openpose_skeleton=False,
-):
+    mode: str = "balanced",
+    backend: str = "onnxruntime",
+    device: str = "cpu",
+    det_frequency: int = 1,
+    openpose_skeleton: bool = False,
+) -> PoseTracker:
+    """Create an rtmlib PoseTracker for body keypoints."""
     pose_tracker = PoseTracker(
         Body,
         mode=mode,
@@ -27,7 +32,10 @@ def get_pose_tracker(
     return pose_tracker
 
 
-def get_pose(cap, cache_file=None, use_openpose=False, **pose_kwargs):
+def get_pose(
+    cap, cache_file: str | None = None, use_openpose: bool = False, **pose_kwargs
+) -> tuple[np.ndarray, np.ndarray]:
+    """Load keypoints/scores from `cache_file` if it exists, otherwise extract and optionally cache them."""
     if cache_file and os.path.isfile(cache_file):
         npz = np.load(cache_file)
         keypoints, scores = npz["keypoints"], npz["scores"]
@@ -41,12 +49,13 @@ def get_pose(cap, cache_file=None, use_openpose=False, **pose_kwargs):
 
 def extract_pose(
     cap,
-    openpose_skeleton=False,
+    openpose_skeleton: bool = False,
     pose_tracker=None,
-    mode="balanced",
-    device="cpu",
-    backend="onnxruntime",
-):
+    mode: str = "balanced",
+    device: str = "cpu",
+    backend: str = "onnxruntime",
+) -> tuple[np.ndarray, np.ndarray]:
+    """Run pose tracking over every frame of `cap` and return stacked keypoints and scores."""
     frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
     if pose_tracker is None:
@@ -74,7 +83,13 @@ def extract_pose(
     return keypoints, scores
 
 
-def clean_keypoint(coords, max_velocity=30.0, window_len=11, poly_order=2):
+def clean_keypoint(
+    coords: np.ndarray,
+    max_velocity: float = 30.0,
+    window_len: int = 11,
+    poly_order: int = 2,
+) -> np.ndarray:
+    """Drop velocity outliers, fix left/right swaps, interpolate gaps, and smooth keypoint tracks."""
     cleaned = coords.copy().astype(float)
     num_frames, num_keypoints, _ = cleaned.shape
 
@@ -114,13 +129,13 @@ def clean_keypoint(coords, max_velocity=30.0, window_len=11, poly_order=2):
     return cleaned
 
 
-def fix_left_right_switches(coords):
+def fix_left_right_switches(coords: np.ndarray) -> np.ndarray:
+    """Correct frames where left/right keypoints are swapped, using constant-velocity prediction."""
     left_indices = [5, 7, 9, 11, 13, 15]
     right_indices = [6, 8, 10, 12, 14, 16]
     fixed = coords.copy().astype(float)
     num_frames = len(fixed)
 
-    # On commence à t=2 car on a besoin de t-1 et t-2 pour calculer la vitesse
     for t in range(2, num_frames):
         prev1_l = fixed[t - 1, left_indices]  # t-1
         prev2_l = fixed[t - 2, left_indices]  # t-2
@@ -131,19 +146,18 @@ def fix_left_right_switches(coords):
         curr_l = fixed[t, left_indices]
         curr_r = fixed[t, right_indices]
 
-        # 1. Calcul du vecteur de vitesse
+        # Compute speed
         v_l = prev1_l - prev2_l
         v_r = prev1_r - prev2_r
 
-        # Remplacement des NaN par 0 pour retomber sur la méthode statique en cas de trou
         v_l = np.where(np.isnan(v_l), 0.0, v_l)
         v_r = np.where(np.isnan(v_r), 0.0, v_r)
 
-        # 2. Prédiction de la position
+        # Predict pose
         pred_l = prev1_l + v_l
         pred_r = prev1_r + v_r
 
-        # 3. Comparaison avec les prédictions
+        # Compute metrics
         sq_dist_normal_l = (curr_l - pred_l) ** 2
         sq_dist_normal_r = (curr_r - pred_r) ** 2
 
@@ -167,7 +181,8 @@ def fix_left_right_switches(coords):
     return fixed
 
 
-def fix_left_right_switches_old(coords):
+def fix_left_right_switches_old(coords: np.ndarray) -> np.ndarray:
+    """Deprecated: position-only variant of `fix_left_right_switches`."""
     fixed = coords.copy().astype(float)
     num_frames = len(fixed)
 

@@ -1,3 +1,5 @@
+"""Gradio web UI for running rtmlib pose estimation on uploaded images."""
+
 import gradio as gr
 import numpy as np
 
@@ -6,12 +8,13 @@ from rtmlib import Body, Wholebody, draw_skeleton
 cached_model = {}
 
 
-def predict(img,
-            openpose_skeleton,
-            model_type,
-            black_bg=False,
-            backend='onnxruntime',
-            device='cpu'):
+def predict(img: np.ndarray,
+            openpose_skeleton: bool,
+            model_type: str,
+            black_bg: bool = False,
+            backend: str = 'onnxruntime',
+            device: str = 'cpu') -> np.ndarray:
+    """Run the selected pose model on `img` and return the RGB skeleton visualization."""
 
     if model_type == 'body':
         constructor = Body

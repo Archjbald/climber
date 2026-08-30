@@ -1,3 +1,5 @@
+"""Minimal rtmlib example: detect body keypoints on a single image and display them."""
+
 import cv2
 from rtmlib import draw_skeleton, Body
 
