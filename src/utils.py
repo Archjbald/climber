@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from rtmlib import draw_skeleton
 from matplotlib import pyplot as plt
+from PIL import Image
 
 from src.config import config as cfg
 
@@ -26,11 +27,12 @@ def plot_vals(*args):
     plt.show()
 
 
-def vis_vid(cap, keypoints=None, scores=None, mode="all", save=True):
+def vis_vid(cap, keypoints=None, scores=None, mode="all", save=True, gif=False):
     if not cfg.DEBUG:
         return
     fps = cap.get(cv2.CAP_PROP_FPS)
     frame_len = 1 / fps
+    gif_fps = 10
 
     frame_idx = 0
     cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
@@ -38,8 +40,14 @@ def vis_vid(cap, keypoints=None, scores=None, mode="all", save=True):
     if save:
         frame_width = int(cap.get(3))
         frame_height = int(cap.get(4))
-        fourcc = cv2.VideoWriter_fourcc(*"XVID")
-        out = cv2.VideoWriter("output.avi", fourcc, fps, (frame_width, frame_height))
+
+        pil_images = None
+        out = None
+        if gif:
+            pil_images = []
+        if not gif:
+            fourcc = cv2.VideoWriter_fourcc(*"XVID")
+            out = cv2.VideoWriter("output.avi", fourcc, fps, (frame_width, frame_height))
 
     if mode == "one":
         keypoints_17 = np.zeros((len(keypoints), 1, 17, 2), dtype=float)
@@ -55,7 +63,11 @@ def vis_vid(cap, keypoints=None, scores=None, mode="all", save=True):
         if not success:
             break
 
-        img_show = frame.copy()
+        if gif:
+            img_show = np.zeros_like(frame)
+        else:
+            img_show = frame.copy()
+
         if keypoints is not None:
             if mode == "all":
                 img_show = draw_skeleton(
@@ -103,11 +115,25 @@ def vis_vid(cap, keypoints=None, scores=None, mode="all", save=True):
                     radius=5,
                 )
         if save:
-            out.write(img_show)
+            if gif:
+                if frame_idx % (fps // gif_fps) == 1:
+                    pil_images.append(Image.fromarray(cv2.cvtColor(img_show, cv2.COLOR_BGR2RGB)))
+            else:
+                out.write(img_show)
+                
         cv2.imshow("img", img_show)
         now2 = time.time()
         wait = max(1, round((frame_len - now2 + now) * 1000))
         cv2.waitKey(wait)
 
     if save:
-        out.release()
+        if gif:
+            pil_images[0].save(
+                "output.gif",
+                save_all=True,
+                append_images=pil_images[1:],
+                duration=1000 // gif_fps,  # duration per frame in milliseconds (1000 / fps)
+                loop=0,  # 0 means infinite loop
+            )
+        else:
+            out.release()
