@@ -32,7 +32,7 @@ def test_process_vid_standard_execution(
         "climbing_metrics": {"move_count": 5},
     }
 
-    mock_get_pose.assert_called_once_with(mock_cap, True)
+    mock_get_pose.assert_called_once_with(mock_cap, cache_file=None, use_openpose=True, pose_tracker=None)
     mock_clean.assert_called_once()
     mock_analyse.assert_called_once_with("cleaned_kps", 30.0)
     mock_cap.release.assert_called_once()
