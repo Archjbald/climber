@@ -1,0 +1,4 @@
+run_id,metrics.mean_confidence,metrics.processing_fps,metrics.pct_valid_keypoints,params.mode,params.clip,params.openpose
+79d77e04b25f48aeb1919b1137fac624,0.7518988847732544,1.0034056252506847,0.9707195378151261,performance,data/test.mp4,False
+10312e9528a14c668f5d1d9cb1a458da,0.6748058795928955,5.867861384217907,0.9810590903027878,balanced,data/test.mp4,False
+0a30bfef1b054fc799f79b36a8a0dd76,0.6715368628501892,26.358917894376564,0.9627798021863613,lightweight,data/test.mp4,False

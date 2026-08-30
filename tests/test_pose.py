@@ -1,6 +1,6 @@
 import numpy as np
 from unittest.mock import patch, MagicMock
-from src.pose import get_pose
+from src.pose import extract_pose
 
 @patch("src.pose.Body")
 @patch("src.pose.PoseTracker")
@@ -24,7 +24,7 @@ def test_get_pose_processing_loop(mock_pose_tracker_class, mock_body):
     ]
 
     to_openpose = False
-    keypoints, scores = get_pose(mock_cap, openpose_skeleton=to_openpose)
+    keypoints, scores = extract_pose(mock_cap, openpose_skeleton=to_openpose)
 
     mock_pose_tracker_class.assert_called_once_with(
         mock_body,

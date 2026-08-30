@@ -7,3 +7,7 @@ pytest
 fastapi
 uvicorn
 python-multipart
+mlflow
+opencv-python
+mlflow-skinny
+numpy

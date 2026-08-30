@@ -4,25 +4,55 @@ from tqdm import tqdm
 from scipy.signal import savgol_filter
 import cv2
 import numpy as np
-
+import os
 
 # 0 nose, 1 left_eye, 2 right_eye, 3 left_ear, 4 right_ear, 5 left_shoulder, 6 right_shoulder, 7 left_elbow, 8 right_elbow, 9 left_wrist, 10 right_wrist, 11 left_hip, 12 right_hip, 13 left_knee, 14 right_knee, 15 left_ankle, 16 right_ankle
 
 
-def get_pose(cap, openpose_skeleton=False):
-    device = "cpu"
-    backend = "onnxruntime"
-
-    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-
+def get_pose_tracker(
+    mode="balanced",
+    backend="onnxruntime",
+    device="cpu",
+    det_frequency=1,
+    openpose_skeleton=False,
+):
     pose_tracker = PoseTracker(
         Body,
-        mode="balanced",
-        det_frequency=1,
+        mode=mode,
+        det_frequency=det_frequency,
         backend=backend,
         device=device,
         to_openpose=openpose_skeleton,
     )
+    return pose_tracker
+
+
+def get_pose(cap, cache_file=None, use_openpose=False, **pose_kwargs):
+    if cache_file and os.path.isfile(cache_file):
+        npz = np.load(cache_file)
+        keypoints, scores = npz["keypoints"], npz["scores"]
+    else:
+        keypoints, scores = extract_pose(cap, use_openpose, **pose_kwargs)
+        if cache_file:
+            np.savez(cache_file, keypoints=keypoints, scores=scores)
+
+    return keypoints, scores
+
+
+def extract_pose(
+    cap,
+    openpose_skeleton=False,
+    pose_tracker=None,
+    mode="balanced",
+    device="cpu",
+    backend="onnxruntime",
+):
+    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    if pose_tracker is None:
+        pose_tracker = get_pose_tracker(
+            mode, backend, device, openpose_skeleton=openpose_skeleton
+        )
 
     frame_idx = 0
     detection = [[], []]
