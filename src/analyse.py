@@ -87,9 +87,10 @@ def count_moves(
     return moves, states
 
 
-def analyse_climb(poses, fps=30):
+def analyse_climb(poses, fps=30, plot=False):
     moves, motions = count_moves(poses, fps=fps)
-    # plot_vals(*motions)
+    if plot:
+        plot_vals(*motions)
 
     static_frame = sum(np.sum(motions, axis=0) == 0)
     static_time = static_frame / fps
@@ -119,11 +120,13 @@ def threshold_window(vals, thresh, wind, keep="sup"):
     return results
 
 
-def analyse_center(poses):
+def analyse_center(poses, plot=False):
     center = (poses[:, 11] + poses[:, 12]) / 2.0
     diff_center = np.diff(center, axis=0)
     velocities = np.sqrt(np.sum(diff_center**2, axis=-1))
 
     static = threshold_window(velocities, 2, 20, keep="inf")
-    plot_vals(velocities, static)
+    if plot:
+        plot_vals(velocities, static)
+
     return center, velocities

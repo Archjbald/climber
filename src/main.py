@@ -1,6 +1,4 @@
-import os
 import cv2
-import numpy as np
 
 from src.pose import get_pose, clean_keypoint
 from src.utils import vis_vid, check_vid
@@ -9,16 +7,13 @@ from src.analyse import analyse_climb
 from src.config import config as cfg
 
 
-def process_vid(video_path: str) -> dict:
+def process_vid(video_path: str, pose_tracker=None) -> dict:
     cap = cv2.VideoCapture(video_path)
-    if cfg.DEBUG and os.path.isfile(cfg.SAVE_FILE):
-        npz_file = np.load(cfg.SAVE_FILE)
-        keypoints = npz_file["keypoints"]
-        scores = npz_file["scores"]
-    else:
-        keypoints, scores = get_pose(cap, cfg.USE_OPENPOSE)
-        if cfg.DEBUG:
-            np.savez(cfg.SAVE_FILE, keypoints=keypoints, scores=scores)
+
+    cache = cfg.SAVE_FILE if cfg.DEBUG else None
+    keypoints, scores = get_pose(
+        cap, cache_file=cache, use_openpose=cfg.USE_OPENPOSE, pose_tracker=pose_tracker
+    )
 
     keypoints[scores < 0.3] = None
     scores[scores < 0.3] = 0

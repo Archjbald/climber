@@ -2,14 +2,21 @@
 
 A rock climbing analysis tool that tracks climbing metrics from video inputs using Human Pose Estimation (HPE), exposed via an asynchronous FastAPI backend.
 
+Built to propose a base framework for an end-to-end CV pipeline. Any training / finetuning / evaluation is out of scope here, mostly for lack of annotated data (and time).
+
+Extracted metrics:
+- Number of moves
+- Not-moving time
+- Trajectory
+
 ## Status
 Currently in active development. The codebase supports video upload verification, asynchronous background processing, and pose estimation.
 
 ## Tech Stack
 * **Language:** Python 3.10+
-* **HPE Engine:** Powered by [rtmlib](https://github.com/Tau-J/rtmlib) for fast and accurate real-time pose estimation.
-* **API Framework:** FastAPI + Uvicorn for asynchronous task execution.
-* **Containerization:** Docker / Podman with system-level dependencies for OpenCV image processing.
+* **HPE Engine:** [rtmlib](https://github.com/Tau-J/rtmlib) for pose estimation
+* **API Framework:** FastAPI + Uvicorn for asynchronous task execution
+* **Containerization:** Docker
 
 ## Project Structure
 ```text
@@ -27,8 +34,8 @@ climber/
 └── requirements.txt
 ```
 
-# Getting Started
-## Option A: Run with Docker (Recommended)
+## Getting Started
+### Option A: Run with Docker (Recommended)
 
 Make sure you have Docker installed.
 1. Build the Docker image
@@ -41,11 +48,11 @@ docker build -t climber:latest .
 docker run -p 8000:8000 --name climber-app climber:latest
 ```
 
-## Option B: Local Setup (Development)
+### Option B: Local Setup (Development)
 
 1. Clone the repository
 ```bash
-git clone [https://github.com/yourusername/climber.git](https://github.com/yourusername/climber.git)
+git clone https://github.com/yourusername/climber.git
 cd climber
 ```
 
@@ -67,8 +74,23 @@ Start the local development server using:
 uvicorn src.app:app --reload
 ```
 
-# API Documentation
+## API Documentation
 
 Once the application is running (via Docker or locally), access the interactive API documentation at:
 
 👉 http://localhost:8000/docs
+
+## Experiment Tracking (MLflow)
+
+Due to lack of labeled climbing dataset, MLflow is used to track:
+- rtmlib backend/mode selection
+- tuning the post-processing heuristics (smoothing, velocity filtering)
+
+Tuning decisions are made qualitatively by inspecting logged trajectory
+output metrics per run.
+- `reports/climbing_backend_sweep.csv` — FPS vs. detection confidence across modes
+- `reports/climbing_heuristic_tuning.csv` — smoothing/threshold sweep results
+- `reports/screenshots/` — MLflow UI run comparison + example artifacts
+
+The full pipeline is packaged as a registered MLflow pyfunc model
+(`src/mlflow_model.py`) and servable via `mlflow models serve`.
