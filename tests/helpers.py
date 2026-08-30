@@ -1,6 +1,37 @@
 """Test fixtures and fake-data factories shared across the test suite."""
 
+import pytest
 import numpy as np
+import cv2
+
+
+@pytest.fixture
+def sample_video_path(tmp_path):
+    """Generates a temporary 1-second dummy video for testing."""
+    video_file = tmp_path / "synthetic_test_video.mp4"
+
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    out = cv2.VideoWriter(str(video_file), fourcc, 30.0, (640, 480))
+
+    for i in range(30):
+        frame = np.zeros((480, 640, 3), dtype=np.uint8)
+        cv2.circle(frame, (100 + i * 5, 240), 30, (0, 255, 0), -1)
+        out.write(frame)
+
+    out.release()
+    return str(video_file)
+
+@pytest.fixture
+def sample_fake_path(tmp_path):
+    """Generates a temporary 1-second dummy video for testing."""
+    video_file = tmp_path / "empty_video.mp4"
+
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    out = cv2.VideoWriter(str(video_file), fourcc, 30.0, (640, 480))
+
+    out.release()
+    return str(video_file)
+
 
 
 def make_video(filename: str = "video.mp4") -> dict:
