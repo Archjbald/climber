@@ -1,17 +1,17 @@
 from pathlib import Path
-
+from  tests.helpers import sample_video_path, sample_fake_path
 from src.utils import check_vid
 
-ASSETS = Path(__file__).parent / "assets"
+# ASSETS = Path(__file__).parent / "assets"
 
 """
 Test check vid
 """
 
 # Test valid video
-def test_check_vid_valid():
-    assert check_vid(ASSETS / "valid.mp4")
+def test_check_vid_valid(sample_video_path):
+    assert check_vid(sample_video_path)
 
 # Test fake video
-def test_check_vid_fake():
-    assert not check_vid(ASSETS / "fake.mp4")
+def test_check_vid_fake(sample_fake_path):
+    assert not check_vid(sample_fake_path)
