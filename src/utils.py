@@ -37,6 +37,7 @@ def plot_vals(*args: np.ndarray) -> None:
 
 
 def get_cache_path(file_path: str) -> str:
+    """Generate cache file based on compressed file path."""
     normalized = file_path.replace("\\", "/").strip()
     compressed = zlib.compress(normalized.encode('utf-8'), level=9)
     uid = base64.urlsafe_b64encode(compressed).decode('ascii').rstrip('=')

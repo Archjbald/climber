@@ -1,12 +1,16 @@
-class AppConfig:
+from pydantic_settings import BaseSettings
+
+
+class AppConfig(BaseSettings):
     """Runtime configuration flags for the pose pipeline."""
 
-    def __init__(self):
-        self.USE_CACHE = True
-        self.DRAW = True
-        self.USE_OPENPOSE = False
-        self.DEBUG = True
-        self.CONF_THRESH = 0.3
+    DEBUG: bool = False
+    USE_CACHE: bool = True
+    DRAW: bool = True
+    USE_OPENPOSE: bool = False
+    CONF_THRESH: float = 0.3
+    MAX_UPLOAD_MB: int = 200
+
 
 
 config = AppConfig()

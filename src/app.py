@@ -1,75 +1,101 @@
-"""FastAPI service for uploading climbing videos and retrieving analysis results."""
+"""FastAPI service for uploading a climbing video and retrieving its analysis."""
 
-import os
+import asyncio
 import uuid
-from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException
+from pathlib import Path
+
+from fastapi import FastAPI, UploadFile, File, HTTPException
+
 from src.main import process_vid
 from src.config import config as cfg
 from src.utils import check_vid
 
-cfg.DEBUG = False
-
 app = FastAPI()
 
-UPLOAD_DIR = "temp_uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+UPLOAD_DIR = Path("temp_uploads")
+UPLOAD_DIR.mkdir(exist_ok=True)
 
-tasks_db = {}
+ALLOWED_SUFFIXES = (".mp4", ".mov", ".avi")
+CHUNK_SIZE = 1024 * 1024  # 1 MiB
 
-def submit_video(file_path: str, background_tasks: BackgroundTasks) -> str:
-    """Register a background analysis task for `file_path` and return its task id."""
-    task_id = str(uuid.uuid4())
-    tasks_db[task_id] = {"status": "processing"}
-    background_tasks.add_task(async_process_vid, task_id, file_path)
-    return task_id
+tasks_db: dict[str, dict] = {}
+_running_tasks: set[asyncio.Task] = set()
+_busy = False
 
-def async_process_vid(task_id: str, file_path: str) -> None:
-    """Run video analysis, store the result under `task_id`, and delete the source file."""
-    print("** Starting process", task_id)
+
+def _job_running() -> bool:
+    return _busy or any(t["status"] == "processing" for t in tasks_db.values())
+
+
+def _resolve_upload_path(filename: str) -> Path:
+    """Map a client-supplied filename to a safe, unique path inside UPLOAD_DIR."""
+    suffix = Path(filename).suffix.lower()
+    if suffix not in ALLOWED_SUFFIXES:
+        raise HTTPException(status_code=400, detail="Only MP4, MOV, and AVI are supported.")
+    return UPLOAD_DIR / f"{uuid.uuid4().hex}{suffix}"
+
+
+async def _save_upload(file: UploadFile, dest: Path) -> None:
+    """Stream an upload to `dest`, enforcing the configured size cap."""
+    max_bytes = cfg.MAX_UPLOAD_MB * 1024 * 1024
+    size = 0
     try:
-        results = process_vid(file_path)
-        tasks_db[task_id] = {"status": "success", "analysis": results}
-        print("** Finished process", task_id)
+        with open(dest, "wb") as buffer:
+            while chunk := await file.read(CHUNK_SIZE):
+                size += len(chunk)
+                if size > max_bytes:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"File exceeds the {cfg.MAX_UPLOAD_MB} MB limit.",
+                    )
+                buffer.write(chunk)
+    except HTTPException:
+        dest.unlink(missing_ok=True)
+        raise
+    except Exception as e:
+        dest.unlink(missing_ok=True)
+        raise HTTPException(status_code=500, detail=f"Failed to save upload: {e}") from e
+
+
+async def _run_analysis(task_id: str, file_path: Path) -> None:
+    """Run the pipeline off the event loop and store the outcome under `task_id`."""
+    loop = asyncio.get_running_loop()
+    try:
+        analysis = await loop.run_in_executor(None, process_vid, str(file_path))
+        tasks_db[task_id] = {"status": "success", "analysis": analysis}
     except Exception as e:
         tasks_db[task_id] = {"status": "failed", "error": str(e)}
-        print("** Aborted process", task_id)
     finally:
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        file_path.unlink(missing_ok=True)
 
 
-@app.post("/analyze")
-async def analyze_video(
-    background_tasks: BackgroundTasks, file: UploadFile = File(...)
-) -> dict:
-    """Validate an uploaded video, save it, and start background analysis."""
-    if not file.filename.lower().endswith((".mp4", ".mov", ".avi")):
+@app.post("/analyze", status_code=202)
+async def analyze_video(file: UploadFile = File(...)) -> dict:
+    """Validate an uploaded video and start its analysis (one job at a time)."""
+    global _busy
+    if _job_running():
         raise HTTPException(
-            status_code=400, detail="Only MP4, MOV, and AVI are supported."
+            status_code=409, detail="An analysis is already running. Retry once it is done."
         )
 
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
-
-    # Write received vid
+    _busy = True
     try:
-        with open(file_path, "wb") as buffer:
-            while chunk := file.file.read(1024 * 1024):  # 1 Mo
-                buffer.write(chunk)
-    except Exception as e:
-        if os.path.exists(file_path):
-            os.remove(file_path)
-        raise HTTPException(status_code=500, detail=f"Failed to save upload: {str(e)}")
+        dest = _resolve_upload_path(file.filename or "")
+        await _save_upload(file, dest)
 
-    # Check video integrity
-    if not (check_vid(file_path)):
-        if os.path.exists(file_path):
-            os.remove(file_path)
-        raise HTTPException(
-            status_code=400, detail="Uploaded file is corrupted or not a valid video."
-        )
+        if not check_vid(str(dest)):
+            dest.unlink(missing_ok=True)
+            raise HTTPException(
+                status_code=400, detail="Uploaded file is corrupted or not a valid video."
+            )
 
-    # Launch video process in background
-    task_id = submit_video(file_path, background_tasks)
+        task_id = str(uuid.uuid4())
+        tasks_db[task_id] = {"status": "processing"}
+        task = asyncio.create_task(_run_analysis(task_id, dest))
+        _running_tasks.add(task)
+        task.add_done_callback(_running_tasks.discard)
+    finally:
+        _busy = False
 
     return {
         "status": "processing",

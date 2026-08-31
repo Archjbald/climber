@@ -8,7 +8,7 @@ mlflow.set_experiment("climbing_model_packaging")
 with mlflow.start_run(run_name="packaged_pipeline_v1"):
     input_example = pd.DataFrame({"video_path": ["data/test.mp4"]})
     mlflow.pyfunc.log_model(
-        name="climbing_model",  # `artifact_path` is deprecated, per your log
+        name="climbing_model",
         python_model="src/mlflow_model.py",
         input_example=input_example,
         registered_model_name="climbing_pose_analyzer",
