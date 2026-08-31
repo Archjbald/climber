@@ -1,13 +1,12 @@
 """MLflow sweep over keypoint-cleaning hyperparameters (window, poly order, max velocity)."""
 
-import mlflow
 import cv2
-from src.pose import clean_keypoint, get_pose
-from src.analyse import analyse_climb
-from experiments.utils_expe import log_com_trajectory_plot
-from src.analyse import analyse_center
-from src.config import config as cfg
+import mlflow
 
+from experiments.utils_expe import log_com_trajectory_plot
+from src.analyse import analyse_center, analyse_climb
+from src.config import config as cfg
+from src.pose import clean_keypoint, get_pose
 
 mlflow.set_experiment("climbing_heuristic_tuning")
 CLIP = "data/test.mp4"

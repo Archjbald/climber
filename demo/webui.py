@@ -2,7 +2,6 @@
 
 import gradio as gr
 import numpy as np
-
 from rtmlib import Body, Wholebody, draw_skeleton
 
 cached_model = {}
@@ -49,36 +48,34 @@ def predict(img: np.ndarray,
     return img_show[:, :, ::-1]
 
 
-with gr.Blocks() as demo:
+with gr.Blocks() as demo, gr.Tab('Upload-Image'):
+    input_img = gr.Image(type='numpy')
+    button = gr.Button('Inference', variant='primary')
+    openpose_skeleton = gr.Checkbox(label='openpose-skeleton',
+                                    info='Draw OpenPose-style Skeleton')
+    black_bg = gr.Checkbox(
+        label='black background',
+        info='Whether to draw skeleton on black background')
+    model_type = gr.Dropdown(['body', 'wholebody'],
+                             label='Keypoint Type',
+                             info='Body / Wholebody',
+                             value='body')
+    backend = gr.Dropdown(['opencv', 'onnxruntime', 'openvino'],
+                          label='Choose backend',
+                          info='opencv / onnxruntime / openvino',
+                          value='onnxruntime')
+    device = gr.Dropdown(['cpu', 'cuda', 'mps'],
+                         label='Choose device',
+                         info='cpu / cuda / mps',
+                         value='cpu')
 
-    with gr.Tab('Upload-Image'):
-        input_img = gr.Image(type='numpy')
-        button = gr.Button('Inference', variant='primary')
-        openpose_skeleton = gr.Checkbox(label='openpose-skeleton',
-                                        info='Draw OpenPose-style Skeleton')
-        black_bg = gr.Checkbox(
-            label='black background',
-            info='Whether to draw skeleton on black background')
-        model_type = gr.Dropdown(['body', 'wholebody'],
-                                 label='Keypoint Type',
-                                 info='Body / Wholebody',
-                                 value='body')
-        backend = gr.Dropdown(['opencv', 'onnxruntime', 'openvino'],
-                              label='Choose backend',
-                              info='opencv / onnxruntime / openvino',
-                              value='onnxruntime')
-        device = gr.Dropdown(['cpu', 'cuda', 'mps'],
-                             label='Choose device',
-                             info='cpu / cuda / mps',
-                             value='cpu')
+    gr.Markdown('## Output')
+    out_image = gr.Image(type='numpy')
+    gr.Examples(['./demo.jpg'], input_img)
 
-        gr.Markdown('## Output')
-        out_image = gr.Image(type='numpy')
-        gr.Examples(['./demo.jpg'], input_img)
-
-        button.click(predict, [
-            input_img, openpose_skeleton, model_type, black_bg, backend, device
-        ], out_image)
+    button.click(predict, [
+        input_img, openpose_skeleton, model_type, black_bg, backend, device
+    ], out_image)
 
 gr.close_all()
 demo.queue()

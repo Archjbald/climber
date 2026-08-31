@@ -1,14 +1,15 @@
 """MLflow sweep comparing rtmpose backend modes for speed and keypoint confidence."""
 
 import time
-import cv2
-import numpy as np
-import mlflow
-
 from pathlib import Path
-from src.pose import extract_pose
-from src.config import config as cfg
+
+import cv2
+import mlflow
+import numpy as np
+
 from experiments.utils_expe import log_skeleton_overlay
+from src.config import config as cfg
+from src.pose import extract_pose
 
 mlflow.set_experiment("climbing_backend_sweep")
 CLIPS = ["data/test.mp4"]

@@ -2,17 +2,16 @@
 
 from __future__ import annotations
 
+import hashlib
 import time
 
 import cv2
 import numpy as np
-from rtmlib import draw_skeleton
 from matplotlib import pyplot as plt
 from PIL import Image
+from rtmlib import draw_skeleton
 
 from src.config import config as cfg
-
-import hashlib
 
 
 def check_vid(file_path: str) -> bool:

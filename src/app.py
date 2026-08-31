@@ -4,10 +4,11 @@ import asyncio
 import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+import anyio
+from fastapi import FastAPI, File, HTTPException, UploadFile
 
-from src.main import process_vid
 from src.config import config as cfg
+from src.main import process_vid
 from src.utils import check_vid
 
 app = FastAPI()
@@ -40,7 +41,7 @@ async def _save_upload(file: UploadFile, dest: Path) -> None:
     max_bytes = cfg.MAX_UPLOAD_MB * 1024 * 1024
     size = 0
     try:
-        with open(dest, "wb") as buffer:
+        async with await anyio.open_file(dest, "wb") as buffer:
             while chunk := await file.read(CHUNK_SIZE):
                 size += len(chunk)
                 if size > max_bytes:
@@ -48,7 +49,7 @@ async def _save_upload(file: UploadFile, dest: Path) -> None:
                         status_code=413,
                         detail=f"File exceeds the {cfg.MAX_UPLOAD_MB} MB limit.",
                     )
-                buffer.write(chunk)
+                await buffer.write(chunk)
     except HTTPException:
         dest.unlink(missing_ok=True)
         raise
@@ -63,7 +64,7 @@ async def _run_analysis(task_id: str, file_path: Path) -> None:
     try:
         analysis = await loop.run_in_executor(None, process_vid, str(file_path))
         tasks_db[task_id] = {"status": "success", "analysis": analysis}
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - background job must record any failure
         tasks_db[task_id] = {"status": "failed", "error": str(e)}
     finally:
         file_path.unlink(missing_ok=True)

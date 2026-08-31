@@ -1,9 +1,11 @@
 """Tests for src.pose."""
 
+from unittest.mock import MagicMock, patch
+
 import numpy as np
-from unittest.mock import patch, MagicMock
 from pytest import approx
-from src.pose import extract_pose, clean_keypoint, fix_left_right_switches
+
+from src.pose import clean_keypoint, extract_pose, fix_left_right_switches
 
 LEFT = [5, 7, 9, 11, 13, 15]
 RIGHT = [6, 8, 10, 12, 14, 16]

@@ -1,7 +1,8 @@
 """Export MLflow sweep runs (params and metrics) to CSV reports."""
 
-import mlflow
 from pathlib import Path
+
+import mlflow
 
 Path("reports").mkdir(exist_ok=True)
 
