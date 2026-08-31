@@ -58,7 +58,9 @@ def extract_pose(
     device: str = "cpu",
     backend: str = "onnxruntime",
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Run pose tracking over every frame of `cap` and return stacked keypoints and scores."""
+    """Run pose tracking over every frame of `cap` and return stacked keypoints and scores.
+    Assumes a single climber: only the first tracked person is kept per frame
+    """
     frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
     if pose_tracker is None:
@@ -76,9 +78,12 @@ def extract_pose(
             if not success:
                 break
 
-            keypoints, scores = pose_tracker(frame)
-            detection[0].append(keypoints)  # NB_person, NB_kp, 2
-            detection[1].append(scores)  # NB_person, NB_kp, 2
+            keypoints, scores = pose_tracker(frame)  # NB_person, NB_kp, (2 / 1)
+            if keypoints.shape[0] == 0:
+                keypoints = np.full((1, *keypoints.shape[1:]), np.nan)
+                scores = np.full((1, *scores.shape[1:]), np.nan)
+            detection[0].append(keypoints[:1])  # keep only the tracked climber
+            detection[1].append(scores[:1])
 
     keypoints = np.vstack(detection[0])
     scores = np.vstack(detection[1])
@@ -178,39 +183,5 @@ def fix_left_right_switches(coords: np.ndarray) -> np.ndarray:
         if dist_switched < dist_normal:
             fixed[t, left_indices] = curr_r
             fixed[t, right_indices] = curr_l
-
-    return fixed
-
-
-def fix_left_right_switches_old(coords: np.ndarray) -> np.ndarray:
-    """Deprecated: position-only variant of `fix_left_right_switches`."""
-    fixed = coords.copy().astype(float)
-    num_frames = len(fixed)
-
-    left_indices = [5, 7, 9, 11, 13, 15]
-    right_indices = [6, 8, 10, 12, 14, 16]
-
-    for t in range(1, num_frames):
-        prev_left = fixed[t - 1, left_indices]
-        prev_right = fixed[t - 1, right_indices]
-
-        curr_left = fixed[t, left_indices]
-        curr_right = fixed[t, right_indices]
-
-        sq_dist_normal_l = (curr_left - prev_left) ** 2
-        sq_dist_normal_r = (curr_right - prev_right) ** 2
-
-        sq_dist_switched_l = (curr_right - prev_left) ** 2
-        sq_dist_switched_r = (curr_left - prev_right) ** 2
-
-        with np.errstate(all="ignore"):
-            dist_normal = np.nanmean(sq_dist_normal_l) + np.nanmean(sq_dist_normal_r)
-            dist_switched = np.nanmean(sq_dist_switched_l) + np.nanmean(
-                sq_dist_switched_r
-            )
-
-        if dist_switched < dist_normal:
-            fixed[t, left_indices] = curr_right
-            fixed[t, right_indices] = curr_left
 
     return fixed
