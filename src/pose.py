@@ -33,7 +33,10 @@ def get_pose_tracker(
 
 
 def get_pose(
-    cap, cache_file: str | None = None, use_openpose: bool = False, **pose_kwargs
+    cap: cv2.VideoCapture,
+    cache_file: str | None = None,
+    use_openpose: bool = False,
+    **pose_kwargs,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Load keypoints/scores from `cache_file` if it exists, otherwise extract and optionally cache them."""
     if cache_file and os.path.isfile(cache_file):
@@ -48,9 +51,9 @@ def get_pose(
 
 
 def extract_pose(
-    cap,
+    cap: cv2.VideoCapture,
     openpose_skeleton: bool = False,
-    pose_tracker=None,
+    pose_tracker: PoseTracker | None = None,
     mode: str = "balanced",
     device: str = "cpu",
     backend: str = "onnxruntime",
@@ -105,7 +108,7 @@ def clean_keypoint(
     valid_mask = (frame_idx + 1) < num_frames
     cleaned[frame_idx[valid_mask] + 1, kp_idx[valid_mask]] = np.nan
 
-    # fix non -voluntary switches
+    # fix involuntary left/right switches
     cleaned = fix_left_right_switches(cleaned)
 
     # interpolation
@@ -176,6 +179,7 @@ def fix_left_right_switches(coords: np.ndarray) -> np.ndarray:
         if np.isnan(dist_normal) or np.isnan(dist_switched):
             continue
 
+        # apply the correction to the main array
         if dist_switched < dist_normal:
             fixed[t, left_indices] = curr_r
             fixed[t, right_indices] = curr_l

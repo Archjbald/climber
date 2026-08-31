@@ -12,8 +12,7 @@ from PIL import Image
 
 from src.config import config as cfg
 
-import base64
-import zlib
+import hashlib
 
 
 def check_vid(file_path: str) -> bool:
@@ -37,14 +36,14 @@ def plot_vals(*args: np.ndarray) -> None:
 
 
 def get_cache_path(file_path: str) -> str:
-    """Generate cache file based on compressed file path."""
+    """Return a deterministic cache filename derived from the video path."""
     normalized = file_path.replace("\\", "/").strip()
-    compressed = zlib.compress(normalized.encode('utf-8'), level=9)
-    uid = base64.urlsafe_b64encode(compressed).decode('ascii').rstrip('=')
-    return f'{uid}.npz'
+    digest = hashlib.sha1(normalized.encode("utf-8")).hexdigest()[:16]
+    return f"{digest}.npz"
+
 
 def vis_vid(
-    cap,
+    cap: cv2.VideoCapture,
     keypoints: np.ndarray | None = None,
     scores: np.ndarray | None = None,
     mode: str = "all",

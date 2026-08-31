@@ -73,7 +73,7 @@ def count_moves(
     static_time: float = 0.5,
     smooth_time: float = 0.2,
 ) -> tuple[int, np.ndarray]:
-    """Count climbing moves from wrist/ankle motion; return (move_count, per-keypoint states)."""
+    """Count climbing moves from wrist/ankle motion, return (move_count, per-keypoint states)."""
     speed = compute_joint_speed(pose)
 
     body = np.median(shoulder_width(pose))
