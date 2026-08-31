@@ -1,8 +1,11 @@
 """End-to-end pipeline: pose extraction, keypoint cleaning, visualization, and climb analysis."""
 
+from __future__ import annotations
+
 import sys
 
 import cv2
+from rtmlib import PoseTracker
 
 from src.pose import get_pose, clean_keypoint
 from src.utils import vis_vid, check_vid, get_cache_path
@@ -11,7 +14,7 @@ from src.analyse import analyse_climb
 from src.config import config as cfg
 
 
-def process_vid(video_path: str, pose_tracker=None) -> dict:
+def process_vid(video_path: str, pose_tracker: PoseTracker | None = None) -> dict:
     """Run the full pipeline on a video and return its metadata and climbing metrics."""
     cap = cv2.VideoCapture(video_path)
 
@@ -26,7 +29,7 @@ def process_vid(video_path: str, pose_tracker=None) -> dict:
         keypoints, window_len=7, poly_order=3, max_velocity=50.0
     )
 
-    if cfg.DRAW:
+    if cfg.DEBUG and cfg.DRAW:
         vis_vid(cap, cleaned_keypoints, scores, mode="all")
 
     cap_fps = cap.get(cv2.CAP_PROP_FPS)
@@ -37,7 +40,7 @@ def process_vid(video_path: str, pose_tracker=None) -> dict:
 
     if cfg.DEBUG:
         print("Moves: ", analysis["move_count"])
-        print("Static timme: ", analysis["static_time"], "s.")
+        print("Static time: ", analysis["static_time"], "s.")
 
     data = {
         "video_metadata": {

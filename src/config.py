@@ -12,5 +12,4 @@ class AppConfig(BaseSettings):
     MAX_UPLOAD_MB: int = 200
 
 
-
 config = AppConfig()
