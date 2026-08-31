@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 import src.app
 from src.app import app, tasks_db
-from tests.helpers import make_video, make_process_results
+from tests.helpers import make_process_results, make_video
 
 client = TestClient(app)
 
@@ -90,7 +90,7 @@ def test_analyze_video_success(mock_check_vid, mock_save, mock_run, mock_create_
     mock_create_task.assert_called_once()
 
 
-@patch("builtins.open", side_effect=OSError("No space left on device"))
+@patch("src.app.anyio.open_file", side_effect=OSError("No space left on device"))
 def test_analyze_video_upload_failure(mock_open):
     response = client.post("/analyze", files=make_video())
 

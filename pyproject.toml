@@ -1,0 +1,6 @@
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI declares route params via calls in argument defaults (File/Depends/Query).
+extend-immutable-calls = ["fastapi.File", "fastapi.Depends", "fastapi.Query"]

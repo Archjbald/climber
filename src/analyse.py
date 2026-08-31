@@ -78,8 +78,8 @@ def count_moves(
 
     body = np.median(shoulder_width(pose))
 
-    smooth_frames = max(1, int(round(smooth_time * fps)))
-    static_frames = max(1, int(round(static_time * fps)))
+    smooth_frames = max(1, round(smooth_time * fps))
+    static_frames = max(1, round(static_time * fps))
 
     # LEFT_WRIST = 9, RIGHT_WRIST = 10, LEFT_ANKLE = 15, RIGHT_ANKLE = 16
     avg_speeds = [

@@ -2,8 +2,9 @@
 
 import mlflow.pyfunc
 import pandas as pd
-from src.pose import get_pose_tracker
+
 from src.main import process_vid
+from src.pose import get_pose_tracker
 
 
 class ClimbingPoseModel(mlflow.pyfunc.PythonModel):

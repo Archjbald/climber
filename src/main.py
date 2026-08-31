@@ -7,11 +7,10 @@ import sys
 import cv2
 from rtmlib import PoseTracker
 
-from src.pose import get_pose, clean_keypoint
-from src.utils import vis_vid, check_vid, get_cache_path
 from src.analyse import analyse_climb
-
 from src.config import config as cfg
+from src.pose import clean_keypoint, get_pose
+from src.utils import check_vid, get_cache_path, vis_vid
 
 
 def process_vid(video_path: str, pose_tracker: PoseTracker | None = None) -> dict:

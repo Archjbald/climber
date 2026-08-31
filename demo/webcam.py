@@ -1,7 +1,7 @@
 """Minimal rtmlib example: run pose tracking on a webcam (or video file) stream."""
 
-from rtmlib import Body, PoseTracker, draw_skeleton
 import cv2
+from rtmlib import Body, PoseTracker, draw_skeleton
 
 cap = cv2.VideoCapture(0)  # for video file instead of webcam, use cap = cv2.VideoCapture('./demo.mp4')
 

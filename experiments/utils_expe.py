@@ -1,9 +1,9 @@
 """MLflow logging helpers for experiment artifacts (plots and skeleton overlays)."""
 
-import matplotlib.pyplot as plt
 import cv2
-import numpy as np
+import matplotlib.pyplot as plt
 import mlflow
+import numpy as np
 
 
 def log_com_trajectory_plot(
