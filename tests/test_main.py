@@ -32,7 +32,7 @@ def test_process_vid_counts_no_move_for_a_still_climber(mock_get_pose, sample_vi
     metrics = process_vid(sample_video_path)["climbing_metrics"]
 
     assert metrics["move_count"] == 0
-    assert metrics["static_time"] > 0
+    assert metrics["static_time"] == 1.0
 
 
 @patch("src.main.get_pose")
