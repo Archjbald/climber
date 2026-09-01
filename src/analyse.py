@@ -32,7 +32,7 @@ def moving_average(x: np.ndarray, window: int) -> np.ndarray:
     x_padded = np.pad(x, pad_width, mode='edge')
 
     kernel = np.ones(window) / window
-    return np.convolve(x_padded, kernel, mode="same")
+    return np.convolve(x_padded, kernel, mode="same")[pad_width:-pad_width]
 
 
 def compute_kp_state(speed: np.ndarray, threshold: float, static_frames: int) -> np.ndarray:

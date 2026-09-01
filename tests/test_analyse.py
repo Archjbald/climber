@@ -67,8 +67,18 @@ def test_moving_average_spreads_an_interior_spike():
 
     out = moving_average(x, 3)
 
+    assert out.shape == x.shape
     assert out.max() < 9.0
     assert np.sum(out > 0.0) >= 3
+
+
+def test_moving_average_preserves_length_and_constant_signal():
+    x = np.full(10, 3.0)
+
+    for window in (2, 3, 4, 5):
+        out = moving_average(x, window)
+        assert out.shape == x.shape
+        assert out == approx(3.0)
 
 
 # --- compute_kp_state --------------------------------------------------------
